@@ -33,9 +33,9 @@ impl Computer {
 
     fn get_empty_json(&self) -> String {
         std::format!("\"{}\": \"{}\", \"{}\": \"{}\", \"{}\": \"{}\"",
-                     "computer_name", &self.name.as_str(),
-                     "user_name", &self.user_name.as_str(),
-                     "adr", "Hello"
+            "computer_name", &self.name.as_str(),
+            "user_name", &self.user_name.as_str(),
+            "adr", "Hello"
         )
     }
 
@@ -68,6 +68,7 @@ impl Computer {
 
         let mut _data: HashMap<String, String> = HashMap::new();
         _data.insert("method".to_string(), "".to_string());
+        _data.insert("get_next".to_string(), "true".to_string());
 
         let res = self.json_constructor(_data);
 
