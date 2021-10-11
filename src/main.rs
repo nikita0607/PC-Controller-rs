@@ -3,6 +3,8 @@ extern crate reqwest;
 use std::io::stdin;
 use std::collections::HashMap;
 
+use std::os;
+
 use serde_json::{Value as JsonValue};
 use serde_json::Error as JsonError;
 
@@ -39,8 +41,10 @@ impl Computer {
         )
     }
 
-    fn json_constructor(&self, data: HashMap<String, String>) -> Result<JsonValue, JsonError> {
+    fn json_constructor(&self, data: HashMap<String, String>, get_next: bool) -> Result<JsonValue, JsonError> {
         let mut json = self.get_empty_json();
+
+        json += std::format!(", \"get_next\": \"{}\"", get_next.to_string()).as_str();
 
         for (i, v) in data.iter() {
             json += std::format!(", \"{}\": \"{}\"", i, v).as_str();
@@ -64,13 +68,12 @@ impl Computer {
         Ok(from_json(response_text.as_str()))
     }
 
-    async fn empty_response(&self) -> Result<Result<JsonValue, JsonError>, reqwest::Error>{
+    async fn _empty_response(&self, get_next: bool) -> Result<Result<JsonValue, JsonError>, reqwest::Error>{
 
         let mut _data: HashMap<String, String> = HashMap::new();
         _data.insert("method".to_string(), "".to_string());
-        _data.insert("get_next".to_string(), "true".to_string());
 
-        let res = self.json_constructor(_data);
+        let res = self.json_constructor(_data, get_next);
 
         match res {
             Ok(data) => {
@@ -79,18 +82,24 @@ impl Computer {
 
             JsonError=> Ok(JsonError)
         }
-
-
     }
 
-    async fn add_button(&self, _name: &str, _text: &str) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
+    async fn empty_response(&self) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
+        self._empty_response(false).await
+    }
+
+    async fn empty_response_n(&self) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
+        self._empty_response(true).await
+    }
+
+    async fn _add_button(&self, _name: &str, _text: &str, get_next: bool) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
 
         let mut _data: HashMap<String, String> = HashMap::new();
         _data.insert("method".to_string(), "button.add".to_string());
         _data.insert("name".to_string(), _name.to_string());
         _data.insert("text".to_string(), _text.to_string());
 
-        let res = self.json_constructor(_data);
+        let res = self.json_constructor(_data, get_next);
 
         match res {
             Ok(data) => {
@@ -99,6 +108,14 @@ impl Computer {
 
             JsonError=> Ok(JsonError)
         }
+    }
+
+    async fn add_button(&self, _name: &str, _text: &str) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
+        self._add_button(_name, _text, false).await
+    }
+
+    async fn add_button_n(&self, _name: &str, _text: &str) -> Result<Result<JsonValue, JsonError>, reqwest::Error> {
+        self._add_button(_name, _text, true).await
     }
 }
 
@@ -121,12 +138,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         addr.to_string()
     );
 
+    comp.empty_response().await?;
+
     comp.add_button("Test", "test").await?;
 
     loop {
         let json = comp.empty_response().await??;
 
         println!("{:?}", json);
+
+        std::process::Command::new("shutdown").arg("/s").output().expect("Error!");
 
         sleep(Duration::from_millis(2000)).await;
     }
